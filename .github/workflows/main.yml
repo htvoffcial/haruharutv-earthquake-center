@@ -1,1 +1,36 @@
-{name: JMA Earthquake Monitor, 'on': {schedule: [{cron: '*/8 * * * *'}], workflow_dispatch: null}, permissions: {contents: write}, jobs: {monitor: {runs-on: ubuntu-latest, steps: [{name: Checkout repository, uses: actions/checkout@v4}, {name: Set up Python, uses: actions/setup-python@v5, with: {python-python: '3.10'}}, {name: Install dependencies, run: "python -m pip install --upgrade pip\nif [ -f scripts/requirements.txt ]; then pip install -r .github/scripts/requirements.txt; fi\n"}, {name: Run Earthquake Monitor, run: python .github/scripts/monitor.py}, {name: Commit and Push if changed, run: "git config --local user.email \"github-actions[bot]@users.noreply.github.com\"\ngit config --local user.name \"github-actions[bot]\"\n\n# nearly-earthquake.jsonに変更があるか確認\nif git status --porcelain | grep -q \"nearly-earthquake.json\"; then\n  git add nearly-earthquake.json\n  git commit -m \"Update: 震度3以上の最新地震情報を更新\"\n  git push\n  echo \"JSONファイルを更新してプッシュしました。\"\nelse\n  echo \"変更はありませんでした。\"\nfi\n"}]}}}
+name: JMA Earthquake Monitor
+'on':
+  schedule:
+    - cron: '*/8 * * * *'
+  workflow_dispatch: null
+permissions:
+  contents: write
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests xmltodict
+      - name: Run Earthquake Monitor
+        run: python .github/scripts/monitor.py
+      - name: Commit and Push if changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          if git status --porcelain | grep -q "nearly-earthquake.json"; then
+            git add nearly-earthquake.json
+            git commit -m "Update: 直近の地震情報3以上の震度情報を更新"
+            git push
+            echo "JSONファイルが更新されました。"
+          else
+            echo "変更はありません。"
+          fi
